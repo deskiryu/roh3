@@ -2,10 +2,12 @@ name: ROH Seat Monitor
 
 on:
   schedule:
-    # Runs every 5 minutes (GitHub's minimum granularity for scheduled
-    # workflows). Cron is UTC.
-    - cron: "*/5 * * * *"
-  workflow_dispatch: {}  # lets you trigger a manual run from the Actions tab
+    # Runs every 5 minutes, offset by 2 minutes (2,7,12,17...) rather than
+    # exactly on the 5-minute mark. GitHub's own docs note that schedules
+    # landing exactly on :00/:05/:10 etc. are the most contended and most
+    # likely to be delayed or skipped — offsetting avoids that queue.
+    - cron: "2-59/5 * * * *"
+  workflow_dispatch: {} # lets you trigger a manual run from the Actions tab
 
 jobs:
   check-seats:
