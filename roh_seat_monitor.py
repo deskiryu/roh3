@@ -120,7 +120,11 @@ def check_once():
         )
         print(f"  -> ALERT sent: {labels}")
     elif first_run:
-        print("  -> first run, establishing baseline (no alert)")
+        send_notification(
+            f"Monitor is live for performance 74463. Baseline: {len(current_ids)} seat(s) "
+            f"currently available. You'll be alerted when new ones open up."
+        )
+        print("  -> first run: baseline established, confirmation notification sent")
 
     STATE_FILE.write_text(json.dumps({"seat_ids": list(current_ids)}))
 
