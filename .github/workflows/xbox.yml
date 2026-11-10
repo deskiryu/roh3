@@ -1,0 +1,59 @@
+name: Xbox Refurb Stock Check
+
+on:
+  workflow_dispatch: {}          # triggered by the Azure Function timer via GitHub API
+  # schedule:                    # optional fallback if you'd rather not use the Function
+  #   - cron: "*/15 * * * *"
+
+concurrency:
+  group: xbox-stock-check
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write                 # needed to save the state cache
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-xbox.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-xbox.txt && python -m playwright install --with-deps chromium
+
+      - name: Restore last status
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: xbox-state-${{ github.run_id }}
+          restore-keys: xbox-state-
+
+      - name: Check stock
+        id: check
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          WEBHOOK_URL: ${{ secrets.XBOX_WEBHOOK_URL }}
+        run: python scripts/check_xbox_stock.py
+
+      - name: Save status
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: xbox-state-${{ github.run_id }}
+
+      - name: Upload page snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xbox-page-snapshot
+          path: artifacts/
+          retention-days: 3
