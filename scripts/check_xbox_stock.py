@@ -26,7 +26,17 @@ from playwright.sync_api import sync_playwright
 
 URL = os.getenv("XBOX_URL", "https://www.xbox.com/en-GB/consoles/xbox-series-x/refurbished")
 STATE_FILE = pathlib.Path(os.getenv("STATE_FILE", "state/xbox_stock.json"))
-NTFY_TOPIC2 = os.getenv("NTFY_TOPIC2")
+def _clean_topic(raw):
+    """Accept 'topic', '/topic', 'ntfy.sh/topic' or 'https://ntfy.sh/topic'."""
+    if not raw:
+        return None
+    t = raw.strip()
+    t = re.sub(r"^https?://", "", t)
+    t = re.sub(r"^ntfy\.sh", "", t)
+    return t.strip("/") or None
+
+
+NTFY_TOPIC2 = _clean_topic(os.getenv("NTFY_TOPIC2"))
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 NOTIFY_ALWAYS = os.getenv("NOTIFY_ALWAYS") == "1"
 ARTIFACTS = pathlib.Path("artifacts")
@@ -129,6 +139,8 @@ def post(url, data, headers):
 
 
 def notify(title, message):
+    """Send to every configured channel. Returns True only if all of them succeeded."""
+    ok = True
     if NTFY_TOPIC2:
         try:
             post(
@@ -136,14 +148,19 @@ def notify(title, message):
                 message.encode(),
                 {"Title": title, "Priority": "high", "Tags": "video_game", "Click": URL},
             )
+            print(f"ntfy: sent (topic length {len(NTFY_TOPIC2)} chars)")
         except Exception as e:
+            ok = False
             print(f"ntfy failed: {e}", file=sys.stderr)
     if WEBHOOK_URL:
         try:
             body = json.dumps({"text": f"*{title}*\n{message}\n{URL}"}).encode()
-            post(WEBHOOK_URL, body, {"Content-Type": "application/json"})
+            post(WEBHOOK_URL.strip(), body, {"Content-Type": "application/json"})
+            print("webhook: sent")
         except Exception as e:
+            ok = False
             print(f"webhook failed: {e}", file=sys.stderr)
+    return ok
 
 
 def write_outputs(status, details):
@@ -164,9 +181,11 @@ def main():
         if not (NTFY_TOPIC2 or WEBHOOK_URL):
             print("TEST_NOTIFY set but no NTFY_TOPIC2 or WEBHOOK_URL configured", file=sys.stderr)
             return 1
-        notify("Xbox stock checker: test", f"Test notification sent at {now}. If you can read this, alerts work.")
-        print("Test notification sent")
-        return 0
+        if notify("Xbox stock checker: test", f"Test notification sent at {now}. If you can read this, alerts work."):
+            print("Test notification sent")
+            return 0
+        print("Test notification FAILED - see errors above", file=sys.stderr)
+        return 1
     try:
         main_text, buy_buttons, _ = fetch_page()
         status, details = classify(main_text, buy_buttons)
