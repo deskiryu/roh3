@@ -7,8 +7,8 @@ on:
         description: "Send a test notification only (skip the stock check)"
         type: boolean
         default: false
-  # schedule:                    # optional fallback if you'd rather not use the Function
-  #   - cron: "*/15 * * * *"
+  schedule:                    # optional fallback if you'd rather not use the Function
+    - cron: "*/5 * * * *"
 
 concurrency:
   group: xbox-stock-check
