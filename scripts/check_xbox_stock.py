@@ -160,6 +160,13 @@ def write_outputs(status, details):
 
 def main():
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    if os.getenv("TEST_NOTIFY") == "1":
+        if not (NTFY_TOPIC or WEBHOOK_URL):
+            print("TEST_NOTIFY set but no NTFY_TOPIC or WEBHOOK_URL configured", file=sys.stderr)
+            return 1
+        notify("Xbox stock checker: test", f"Test notification sent at {now}. If you can read this, alerts work.")
+        print("Test notification sent")
+        return 0
     try:
         main_text, buy_buttons, _ = fetch_page()
         status, details = classify(main_text, buy_buttons)
