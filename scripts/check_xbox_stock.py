@@ -9,7 +9,7 @@ purchase buttons/text inside <main>, and notifies on an OUT -> IN transition.
 Env vars (all optional):
   XBOX_URL      page to check (defaults to the refurbished Series X page)
   STATE_FILE    where the last status is stored (default state/xbox_stock.json)
-  NTFY_TOPIC    ntfy.sh topic for push notifications
+  NTFY_TOPIC2    ntfy.sh topic for push notifications
   WEBHOOK_URL   Teams/Slack incoming webhook URL
   NOTIFY_ALWAYS "1" to notify on every IN_STOCK run, not just transitions
 """
@@ -26,7 +26,7 @@ from playwright.sync_api import sync_playwright
 
 URL = os.getenv("XBOX_URL", "https://www.xbox.com/en-GB/consoles/xbox-series-x/refurbished")
 STATE_FILE = pathlib.Path(os.getenv("STATE_FILE", "state/xbox_stock.json"))
-NTFY_TOPIC = os.getenv("NTFY_TOPIC")
+NTFY_TOPIC2 = os.getenv("NTFY_TOPIC2")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 NOTIFY_ALWAYS = os.getenv("NOTIFY_ALWAYS") == "1"
 ARTIFACTS = pathlib.Path("artifacts")
@@ -129,10 +129,10 @@ def post(url, data, headers):
 
 
 def notify(title, message):
-    if NTFY_TOPIC:
+    if NTFY_TOPIC2:
         try:
             post(
-                f"https://ntfy.sh/{NTFY_TOPIC}",
+                f"https://ntfy.sh/{NTFY_TOPIC2}",
                 message.encode(),
                 {"Title": title, "Priority": "high", "Tags": "video_game", "Click": URL},
             )
@@ -161,8 +161,8 @@ def write_outputs(status, details):
 def main():
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     if os.getenv("TEST_NOTIFY") == "1":
-        if not (NTFY_TOPIC or WEBHOOK_URL):
-            print("TEST_NOTIFY set but no NTFY_TOPIC or WEBHOOK_URL configured", file=sys.stderr)
+        if not (NTFY_TOPIC2 or WEBHOOK_URL):
+            print("TEST_NOTIFY set but no NTFY_TOPIC2 or WEBHOOK_URL configured", file=sys.stderr)
             return 1
         notify("Xbox stock checker: test", f"Test notification sent at {now}. If you can read this, alerts work.")
         print("Test notification sent")
