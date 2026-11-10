@@ -1,9 +1,14 @@
 name: Xbox Refurb Stock Check
 
 on:
-  workflow_dispatch: {}          # triggered by the Azure Function timer via GitHub API
-  # schedule:                    # optional fallback if you'd rather not use the Function
-  #   - cron: "*/15 * * * *"
+  # workflow_dispatch:             # triggered by the Azure Function timer via GitHub API
+  #   inputs:
+  #     test_notify:
+  #       description: "Send a test notification only (skip the stock check)"
+  #       type: boolean
+  #       default: false
+  schedule:                    # optional fallback if you'd rather not use the Function
+    - cron: "*/15 * * * *"
 
 concurrency:
   group: xbox-stock-check
@@ -41,6 +46,7 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           WEBHOOK_URL: ${{ secrets.XBOX_WEBHOOK_URL }}
+          TEST_NOTIFY: ${{ inputs.test_notify && '1' || '0' }}
         run: python scripts/check_xbox_stock.py
 
       - name: Save status
